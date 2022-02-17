@@ -127,4 +127,57 @@ tap.test('Utilization Common Components', function (t) {
       }
     })
   })
+
+  t.test('common.metadataAuthToken', (t) => {
+    t.autoend()
+    let agent = null
+    let clock = null
+
+    t.beforeEach(function () {
+      const sinon = require('sinon')
+      clock = sinon.useFakeTimers()
+
+      agent = helper.loadMockedAgent()
+    })
+
+    t.afterEach(function () {
+      helper.unloadAgent(agent)
+      agent = null
+
+      clock.restore()
+      clock = null
+    })
+
+    t.test('should not invoke callback multiple times on timeout', (t) => {
+      let invocationCount = 0
+      common.metadataAuthToken(
+        {
+          host: 'fakedomain.provider.something',
+          path: '/metadata',
+          method: 'GET'
+        },
+        agent,
+        (err) => {
+          invocationCount++
+          t.ok(err)
+        }
+      )
+
+      // trigger the timeout
+      clock.tick(2000)
+
+      // let the rest run
+      clock.restore()
+
+      // need to give enough time for second to have chance to run.
+      // sinon and http dont quite seem to work well enough to do this
+      // totally faked synchronously.
+      setTimeout(verifyInvocations, 1000)
+
+      function verifyInvocations() {
+        t.equal(invocationCount, 1)
+        t.end()
+      }
+    })
+  })
 })
